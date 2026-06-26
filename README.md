@@ -2,7 +2,7 @@
 
 **This folder is not the Duke's Bank application.** It is the **database bridge** for [Anchor Migration](https://github.com/anchor-migration/migration-hub): a small Docker Compose setup that runs a MySQL instance seeded from the legacy sample, so tools like [db-metadata](../db-metadata) can export and verify schema SSOT.
 
-The **Java EE sample itself** lives in a separate repository that you must download and place on disk yourself.
+The **Java EE sample itself** is **not part of the Anchor Migration org** (we have not forked or vendored it yet). You — and we — use an **external clone** sitting next to the `anchor-migration` folder on disk.
 
 ---
 
@@ -12,55 +12,50 @@ The **Java EE sample itself** lives in a separate repository that you must downl
 
 | What | Where |
 |------|--------|
-| Java sources, EJB XML, web tier | **Not in this repo** — in your local `dukesbank` clone |
+| Java sources, EJB XML, web tier | **Not in anchor-migration** — external `dukesbank` clone (see layout below) |
 | MySQL DDL + seed data | `dukesbank/data/mysql/dukesbank.sql` |
 | Bank module root (for `java-ast-ssot`) | `dukesbank/src/j2eetutorial14/examples/bank/` |
 
-Anchor Migration does **not** vendor Duke's Bank inside the org. We only document how to wire it up.
+**Org policy (today):** no `anchor-migration/dukesbank` repository. This demo only documents how to wire an external checkout into Docker and our SSOT tools. A first-party fork may come later; the sibling-directory contract would stay the same.
 
 ---
 
-## What is in *this* folder
+## Layout contract (sibling directories)
 
-| File | Purpose |
-|------|---------|
-| `docker-compose.yml` | MySQL 5.7 container, port 3306, health check |
-| `README.md` | Setup and runbook (this file) |
+`docker-compose.yml` assumes **`dukesbank` is a sibling of `anchor-migration`**, both under the same parent directory — not inside `anchor-migration`, not inside `demo-dukesbank`.
 
-There is no application code, no SQL file, and no exported SQLite here. Those come from your `dukesbank` clone and from `../db-metadata/metadata/` after export.
-
----
-
-## Required layout (you provide `dukesbank`)
-
-`docker-compose.yml` mounts the seed script from a **sibling** directory:
+From this folder (`anchor-migration/demo-dukesbank`), the mount path is:
 
 ```yaml
 ../../dukesbank/data/mysql/dukesbank.sql → container init script
 ```
 
-Default layout (recommended):
+That means: up to `anchor-migration/`, up to the parent (e.g. `github/` or `C:\github\`), then into `dukesbank/`.
+
+### Example (author / recommended layout)
 
 ```
-github/                          # or any parent you prefer
+C:\github\                          ← parent (one level above anchor-migration)
 ├── anchor-migration/
-│   ├── demo-dukesbank/          ← this folder
+│   ├── demo-dukesbank/             ← this repo
 │   ├── db-metadata/
 │   └── java-ast-ssot/
-└── dukesbank/                   ← you clone this yourself
+└── dukesbank/                      ← external clone (same parent as anchor-migration)
     └── data/mysql/dukesbank.sql
 ```
 
-### 1. Clone Duke's Bank
+On Linux/macOS the same idea applies, e.g. `~/github/anchor-migration/` and `~/github/dukesbank/`.
+
+### 1. Clone Duke's Bank (once per machine)
 
 ```bash
-cd /path/to/github
+cd C:\github          # parent of anchor-migration — adjust to your path
 git clone https://github.com/jiananwang/dukesbank.git
 ```
 
-Use another fork if you prefer, as long as `data/mysql/dukesbank.sql` exists.
+Clone **next to** `anchor-migration`, not inside it. Another fork is fine if `data/mysql/dukesbank.sql` exists.
 
-### 2. Adjust paths if your layout differs
+### 2. Adjust paths only if your layout differs
 
 If `dukesbank` is **not** at `../../dukesbank` relative to this folder, edit the `volumes` entry in `docker-compose.yml`:
 
@@ -73,10 +68,21 @@ Then use the same JDBC URL in export commands (`localhost:3306/dukesbank` unless
 
 ---
 
+## What is in *this* folder
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.yml` | MySQL 5.7 container, port 3306, health check |
+| `README.md` | Setup and runbook (this file) |
+
+There is no application code, no SQL file, and no exported SQLite here. Those come from the **sibling** `dukesbank/` checkout and from `../db-metadata/metadata/` after export.
+
+---
+
 ## Prerequisites
 
 - Docker Desktop
-- Duke's Bank cloned so `dukesbank.sql` is reachable from the compose volume (see above)
+- Duke's Bank cloned as **sibling of `anchor-migration`** (see layout contract above)
 - `db-metadata` installed: `pip install -e "../db-metadata[mysql]"`
 
 ---
