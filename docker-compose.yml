@@ -1,0 +1,19 @@
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: dukesbank-mysql
+    environment:
+      MYSQL_DATABASE: dukesbank
+      MYSQL_USER: dukesbank
+      MYSQL_PASSWORD: dukesbank
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - ../../dukesbank/data/mysql/dukesbank.sql:/docker-entrypoint-initdb.d/01-dukesbank.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
