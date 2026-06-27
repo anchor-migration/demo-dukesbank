@@ -73,6 +73,7 @@ Then use the same JDBC URL in export commands (`localhost:3306/dukesbank` unless
 | File | Purpose |
 |------|---------|
 | `docker-compose.yml` | MySQL 5.7 container, port 3306, health check |
+| `scripts/run-e2e.ps1` | **End-to-end** — schema + code + crosswalk (Windows PowerShell) |
 | `README.md` | Setup and runbook (this file) |
 
 There is no application code, no SQL file, and no exported SQLite here. Those come from the **sibling** `dukesbank/` checkout and from `../db-metadata/metadata/` after export.
@@ -124,36 +125,77 @@ db-migration info metadata/dukesbank.db
 
 For the **code** side of the demo (Java + EJB XML), see [java-ast-ssot](../java-ast-ssot) and point `--source-root` at your `dukesbank/.../examples/bank` checkout.
 
+## End-to-end runbook (schema → code → crosswalk → Explorer)
+
+Full narrative: [DUKESBANK-DEMO.md — E2E quick path](../migration-hub/docs/DUKESBANK-DEMO.md#e2e-quick-path).
+
+### One-shot script (Windows)
+
+Requires Docker, `db-metadata` on PATH, Duke's Bank at `../../dukesbank`:
+
+```powershell
+cd demo-dukesbank
+.\scripts\run-e2e.ps1
+# MySQL already up:
+.\scripts\run-e2e.ps1 -SkipDocker
+```
+
+Produces `java-ast-ssot/metadata/dukesbank-linked.db` (32 links, 0 errors — last verified 2026-06-27).
+
+### Anchor Explorer
+
+```powershell
+cd ..\anchor-explorer
+npm install
+npm run dev
+```
+
+Open http://127.0.0.1:5173/ → **Choose File** → `java-ast-ssot\metadata\dukesbank-linked.db`
+
+Expected: crosswalk graph, link table, **Links: 32**, **Issues: 0**.
+
+---
+
+## Manual steps (all platforms)
+
 ### End-to-end crosswalk (Docker MySQL + Docker Maven)
 
 MySQL runs in Docker (above). Build and run `java-ast-ssot` with Docker Maven if local JDK/Maven are not installed:
 
 ```bash
-# From java-ast-ssot/ (schema SSOT can use host db-migration against localhost:3306)
+# Schema SSOT (host db-migration against localhost:3306)
+cd db-metadata
 db-migration export \
   --url "mysql+pymysql://dukesbank:dukesbank@localhost:3306/dukesbank" \
   --out metadata/dukesbank.db
+db-migration verify metadata/dukesbank.db \
+  --url "mysql+pymysql://dukesbank:dukesbank@localhost:3306/dukesbank"
 
+cd ../java-ast-ssot
 docker run --rm -v "$PWD:/app" -w /app maven:3.9-eclipse-temurin-17 mvn -B -q package -DskipTests
 
 docker run --rm \
   -v "$PWD:/app" \
   -v "/path/to/dukesbank/src/j2eetutorial14/examples/bank:/bank:ro" \
+  -v "../db-metadata:/dbmeta:ro" \
   -w /app maven:3.9-eclipse-temurin-17 \
   java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar export \
   -s /bank --profile javaee-ejb2-jboss -o metadata/dukesbank-code.db
 
-docker run --rm -v "$PWD:/app" -w /app maven:3.9-eclipse-temurin-17 \
+docker run --rm \
+  -v "$PWD:/app" \
+  -v "../db-metadata:/dbmeta:ro" \
+  -w /app maven:3.9-eclipse-temurin-17 \
   java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar crosswalk \
   --code-db metadata/dukesbank-code.db \
-  --schema-db metadata/dukesbank.db \
+  --schema-db /dbmeta/metadata/dukesbank.db \
   --db-schema dukesbank \
   -o metadata/dukesbank-linked.db
 ```
 
-**Last verified (2026-06-27):** 4 CMP entities → 32 canonical links (`stack_bridge`, `type_maps_to_table`, `field_maps_to_column`), 0 crosswalk errors.
+**Last verified (2026-06-27):** 4 CMP entities → **32** canonical links (`stack_bridge`, `type_maps_to_table`, `field_maps_to_column`), **0** crosswalk errors, Explorer loads linked DB.
 
-Windows: use `C:/github/anchor-migration/java-ast-ssot` and `C:/github/dukesbank/.../bank` as mount paths. Delete stale `metadata/dukesbank-code.db` if export fails with missing `profiles` column (pre-1.0 SQLite).
+Windows: use `C:/github/anchor-migration/...` mount paths; or `.\scripts\run-e2e.ps1`. Delete stale `metadata/dukesbank-code.db` if export fails with missing `profiles` column (pre-1.0 SQLite).
 
 ---
 
