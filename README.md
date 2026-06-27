@@ -124,6 +124,37 @@ db-migration info metadata/dukesbank.db
 
 For the **code** side of the demo (Java + EJB XML), see [java-ast-ssot](../java-ast-ssot) and point `--source-root` at your `dukesbank/.../examples/bank` checkout.
 
+### End-to-end crosswalk (Docker MySQL + Docker Maven)
+
+MySQL runs in Docker (above). Build and run `java-ast-ssot` with Docker Maven if local JDK/Maven are not installed:
+
+```bash
+# From java-ast-ssot/ (schema SSOT can use host db-migration against localhost:3306)
+db-migration export \
+  --url "mysql+pymysql://dukesbank:dukesbank@localhost:3306/dukesbank" \
+  --out metadata/dukesbank.db
+
+docker run --rm -v "$PWD:/app" -w /app maven:3.9-eclipse-temurin-17 mvn -B -q package -DskipTests
+
+docker run --rm \
+  -v "$PWD:/app" \
+  -v "/path/to/dukesbank/src/j2eetutorial14/examples/bank:/bank:ro" \
+  -w /app maven:3.9-eclipse-temurin-17 \
+  java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar export \
+  -s /bank --profile javaee-ejb2-jboss -o metadata/dukesbank-code.db
+
+docker run --rm -v "$PWD:/app" -w /app maven:3.9-eclipse-temurin-17 \
+  java -jar target/java-ast-ssot-1.0.0-SNAPSHOT.jar crosswalk \
+  --code-db metadata/dukesbank-code.db \
+  --schema-db metadata/dukesbank.db \
+  --db-schema dukesbank \
+  -o metadata/dukesbank-linked.db
+```
+
+**Last verified (2026-06-27):** 4 CMP entities → 32 canonical links (`stack_bridge`, `type_maps_to_table`, `field_maps_to_column`), 0 crosswalk errors.
+
+Windows: use `C:/github/anchor-migration/java-ast-ssot` and `C:/github/dukesbank/.../bank` as mount paths. Delete stale `metadata/dukesbank-code.db` if export fails with missing `profiles` column (pre-1.0 SQLite).
+
 ---
 
 ## Expected schema snapshot (MySQL 5.7)
