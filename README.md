@@ -160,7 +160,8 @@ Produces:
 | `dukesbank-code-before.db` | EJB-era code SSOT |
 | `dukesbank-code-after.db` | Post-`CmpScalarEntityToJpa` + auto-detected profiles |
 | `dukesbank-linked-before.db` / `dukesbank-linked-after.db` | Crosswalk snapshots |
-| `parity-verify/metadata/dukesbank-parity-report.json` | Structural diff report |
+| `parity-verify/metadata/dukesbank-parity-report.json` | Structural + behavioral matrix JSON |
+| `parity-verify/metadata/dukesbank-parity-report.html` | Human-readable parity report |
 
 Apply recipe to a single file (Docker):
 

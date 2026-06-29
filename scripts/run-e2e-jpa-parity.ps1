@@ -134,20 +134,28 @@ docker run --rm `
     --db-schema dukesbank `
     -o metadata/dukesbank-linked-after.db
 
-Write-Host "==> Step 7: parity-verify structural diff" -ForegroundColor Cyan
+Write-Host "==> Step 7: parity-verify structural diff + behavioral matrix" -ForegroundColor Cyan
+$AccountBeanWork = Join-Path $WorkBank $AccountBeanRel
 docker run --rm `
     -v "C:/github/anchor-migration/java-ast-ssot:/javassot" `
     -v "C:/github/anchor-migration/parity-verify:/app" `
+    -v $WorkMount `
     -w /app maven:3.9-eclipse-temurin-17 `
-    java -jar target/parity-verify-0.1.0-SNAPSHOT.jar compare `
+    java -jar target/parity-verify-0.2.0-SNAPSHOT.jar compare `
     --before-db /javassot/metadata/dukesbank-code-before.db `
     --after-db /javassot/metadata/dukesbank-code-after.db `
     --linked-before /javassot/metadata/dukesbank-linked-before.db `
     --linked-after /javassot/metadata/dukesbank-linked-after.db `
-    -o metadata/dukesbank-parity-report.json
+    --matrix dukesbank-cmp-jpa `
+    --touchpoint-source /work/$($AccountBeanRel -replace '\\','/') `
+    -o metadata/dukesbank-parity-report.json `
+    --html-out metadata/dukesbank-parity-report.html `
+    --fail-on-matrix
 
 $parityReport = Join-Path $ParityRoot "metadata\dukesbank-parity-report.json"
+$parityHtml = Join-Path $ParityRoot "metadata\dukesbank-parity-report.html"
 Assert-PathExists $parityReport "parity report"
+Assert-PathExists $parityHtml "parity HTML report"
 
 Write-Host ""
 Write-Host "JPA E2E + parity complete." -ForegroundColor Green
@@ -155,5 +163,6 @@ Write-Host "  Before code:  $MetaDir\dukesbank-code-before.db"
 Write-Host "  After code:   $MetaDir\dukesbank-code-after.db"
 Write-Host "  Linked after: $MetaDir\dukesbank-linked-after.db"
 Write-Host "  Parity JSON:  $parityReport"
+Write-Host "  Parity HTML:  $parityHtml"
 Write-Host ""
-Write-Host "Review parity-report.json — expect removals (EJB lifecycle / abstract CMP) and JPA field additions." -ForegroundColor Yellow
+Write-Host "Review parity-report.html — behavioral matrix should be PASS; structural drift is expected for CMP→JPA." -ForegroundColor Yellow
