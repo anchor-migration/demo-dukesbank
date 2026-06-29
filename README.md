@@ -142,6 +142,36 @@ cd demo-dukesbank
 
 Produces `java-ast-ssot/metadata/dukesbank-linked.db` (32 links, 0 errors — last verified 2026-06-27).
 
+### JPA re-export + parity (ADR-004 Step 4d)
+
+After CMP→JPA rewrite on `AccountBean`, re-export with JPA profile and compare before/after AST:
+
+```powershell
+cd demo-dukesbank
+.\scripts\run-e2e-jpa-parity.ps1
+# MySQL already up:
+.\scripts\run-e2e-jpa-parity.ps1 -SkipDocker
+```
+
+Produces:
+
+| Artifact | Role |
+|----------|------|
+| `dukesbank-code-before.db` | EJB-era code SSOT |
+| `dukesbank-code-after.db` | Post-`CmpScalarEntityToJpa` + auto-detected profiles |
+| `dukesbank-linked-before.db` / `dukesbank-linked-after.db` | Crosswalk snapshots |
+| `parity-verify/metadata/dukesbank-parity-report.json` | Structural diff report |
+
+Apply recipe to a single file (Docker):
+
+```bash
+cd rewrite-recipes
+docker run --rm -v "$PWD:/app" -v "/path/to/AccountBean.java:/work/AccountBean.java" -w /app \
+  maven:3.9-eclipse-temurin-17 bash -lc \
+  'mvn -B -q compile dependency:build-classpath -Dmdep.outputFile=target/cp.txt -Dmdep.includeScope=compile && \
+   java -cp target/classes:$(cat target/cp.txt) com.anchor.migration.rewrite.cli.ApplyRecipeMain CmpScalarEntityToJpa /work/AccountBean.java'
+```
+
 ### Anchor Explorer
 
 ```powershell
