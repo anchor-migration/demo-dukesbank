@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Docker-first wrapper for run-stubborn-context.sh (anchor-stubborn Step 7).
+  Docker-first wrapper for run-stubborn-context.sh (stubborn Step 7).
 
 .EXAMPLE
   .\scripts\run-stubborn-context.ps1

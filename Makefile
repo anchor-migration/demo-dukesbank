@@ -5,7 +5,7 @@ help:
 	@echo "  make up        Start MySQL"
 	@echo "  make e2e       Schema + code + crosswalk"
 	@echo "  make e2e-jpa   CMP->JPA + per-entity parity"
-	@echo "  make stubborn  anchor-stubborn LLM context (Step 7)"
+	@echo "  make stubborn  stubborn LLM context (Step 7)"
 	@echo "  make shell     Interactive runner container"
 
 up:

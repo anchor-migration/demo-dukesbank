@@ -77,7 +77,7 @@ Then use the same JDBC URL in export commands (`localhost:3306/dukesbank` unless
 | `Makefile` | Linux shortcuts (`make e2e`, `make e2e-jpa`) |
 | `scripts/run-e2e.sh` | **Primary** — schema + code + crosswalk (bash, Docker-first) |
 | `scripts/run-e2e-jpa-parity.sh` | **Primary** — CMP→JPA + per-entity parity |
-| `scripts/run-stubborn-context.sh` | Step 7 — delegates to `anchor-stubborn` Docker E2E |
+| `scripts/run-stubborn-context.sh` | Step 7 — delegates to `stubborn` Docker E2E |
 | `scripts/lib/*.sh` | Core pipeline (runs inside runner container) |
 | `scripts/*.ps1` | Thin Windows wrappers (Git Bash or `docker compose`) |
 | `README.md` | Setup and runbook (this file) |
@@ -118,7 +118,7 @@ chmod +x scripts/*.sh
 ```bash
 make e2e          # schema -> code -> crosswalk
 make e2e-jpa      # CMP->JPA + parity (4 entities)
-make stubborn     # anchor-stubborn LLM context
+make stubborn     # stubborn LLM context
 ```
 
 **Windows PowerShell** — same pipelines via thin wrappers:
@@ -239,7 +239,7 @@ Open http://127.0.0.1:5173/ → **Choose File** → `java-ast-ssot\metadata\duke
 
 Expected: crosswalk graph, link table, **Links: 32**, **Issues: 0**.
 
-### Step 7 — LLM context (`anchor-stubborn`)
+### Step 7 — LLM context (`stubborn`)
 
 ```bash
 ./scripts/run-stubborn-context.sh
@@ -247,7 +247,7 @@ Expected: crosswalk graph, link table, **Links: 32**, **Issues: 0**.
 
 Windows: `.\scripts\run-stubborn-context.ps1`
 
-Full narrative: [DUKESBANK-DEMO.md Step 7](../migration-hub/docs/DUKESBANK-DEMO.md#optional--llm-context-anchor-stubborn) · [anchor-stubborn/examples/dukesbank](https://github.com/stubborn-ai/stubborn/tree/main/examples/dukesbank).
+Full narrative: [DUKESBANK-DEMO.md Step 7](../migration-hub/docs/DUKESBANK-DEMO.md#optional--llm-context-stubborn) · [stubborn/examples/dukesbank](https://github.com/stubborn-ai/stubborn/tree/main/examples/dukesbank).
 
 ---
 
