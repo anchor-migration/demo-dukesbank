@@ -40,6 +40,8 @@ $AccountBeanRel = "src/com/sun/ebank/ejb/account/AccountBean.java"
 $CustomerBeanRel = "src/com/sun/ebank/ejb/customer/CustomerBean.java"
 $TxBeanRel = "src/com/sun/ebank/ejb/tx/TxBean.java"
 
+$NextIdBeanRel = "src/com/sun/ebank/ejb/util/NextIdBean.java"
+
 $EntityMigrations = @(
     @{
         Label = "AccountBean"
@@ -80,6 +82,18 @@ $EntityMigrations = @(
             "account_id"
         )
         MatrixFile = "examples/matrices/dukesbank-cmp-jpa-multi-tx.yaml"
+    }
+    @{
+        Label = "NextIdBean"
+        RelPath = $NextIdBeanRel
+        Steps = @(
+            @{ Recipe = "NextIdTableToJpa"; TargetClass = $null }
+        )
+        MustMatch = @(
+            "@javax.persistence.Entity"
+            "getNextId()"
+        )
+        MatrixFile = "examples/matrices/dukesbank-cmp-jpa-multi-nextid.yaml"
     }
 )
 

@@ -158,6 +158,7 @@ cd demo-dukesbank
 | `CmpScalarEntityToJpa` + `CmpManyToManyToJpa` | `AccountBean` |
 | `CmpScalarEntityToJpa` (`CustomerBean`) | `CustomerBean` |
 | `CmpScalarEntityToJpa` (`TxBean`) + `CmpForeignKeyToJpa` | `TxBean` |
+| `NextIdTableToJpa` | `NextIdBean` |
 
 Produces:
 
