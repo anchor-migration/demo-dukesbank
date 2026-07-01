@@ -70,27 +70,69 @@ Then use the same JDBC URL in export commands (`localhost:3306/dukesbank` unless
 
 ## What is in *this* folder
 
-| File | Purpose |
-|------|---------|
-| `docker-compose.yml` | MySQL 5.7 container, port 3306, health check |
-| `scripts/run-e2e.ps1` | **End-to-end** — schema + code + crosswalk (Windows PowerShell) |
-| `scripts/run-e2e-jpa-parity.ps1` | JPA re-export + per-entity parity |
-| `scripts/run-stubborn-context.ps1` | **Step 7** — `scip-java` + anchor-stubborn LLM context |
+| File / directory | Purpose |
+|------------------|---------|
+| `docker-compose.yml` | MySQL + runner image + E2E compose services |
+| `docker/Dockerfile.runner` | Maven + Python toolchain image (no host JDK/pip) |
+| `Makefile` | Linux shortcuts (`make e2e`, `make e2e-jpa`) |
+| `scripts/run-e2e.sh` | **Primary** — schema + code + crosswalk (bash, Docker-first) |
+| `scripts/run-e2e-jpa-parity.sh` | **Primary** — CMP→JPA + per-entity parity |
+| `scripts/run-stubborn-context.sh` | Step 7 — delegates to `anchor-stubborn` Docker E2E |
+| `scripts/lib/*.sh` | Core pipeline (runs inside runner container) |
+| `scripts/*.ps1` | Thin Windows wrappers (Git Bash or `docker compose`) |
 | `README.md` | Setup and runbook (this file) |
 
-There is no application code, no SQL file, and no exported SQLite here. Those come from the **sibling** `dukesbank/` checkout and from `../db-metadata/metadata/` after export.
+There is no application code, no SQL file, and no exported SQLite here. Those come from the **sibling** `dukesbank/` checkout and from sibling repos (`db-metadata`, `java-ast-ssot`, …) after E2E runs.
 
 ---
 
 ## Prerequisites
 
-- Docker Desktop
+- **Docker** (Desktop or Engine + Compose v2)
 - Duke's Bank cloned as **sibling of `anchor-migration`** (see layout contract above)
-- `db-metadata` installed: `pip install -e "../db-metadata[mysql]"`
+- **No host JDK, Maven, or `pip install`** required for E2E — the runner container provides them
+
+Optional: **Git Bash** on Windows so `*.ps1` wrappers can invoke `*.sh` directly.
 
 ---
 
-## Start database
+## Quick start (Docker-first)
+
+From this directory:
+
+```bash
+# Build runner image (once, or after Dockerfile changes)
+docker compose build runner
+
+# Full E2E: MySQL + schema + code + crosswalk
+docker compose up -d mysql
+docker compose run --rm e2e
+
+# Or use the host wrapper (starts MySQL + runs compose):
+chmod +x scripts/*.sh
+./scripts/run-e2e.sh
+```
+
+**Linux / macOS** — `make` shortcuts:
+
+```bash
+make e2e          # schema -> code -> crosswalk
+make e2e-jpa      # CMP->JPA + parity (4 entities)
+make stubborn     # anchor-stubborn LLM context
+```
+
+**Windows PowerShell** — same pipelines via thin wrappers:
+
+```powershell
+.\scripts\run-e2e.ps1
+.\scripts\run-e2e.ps1 -SkipDocker    # MySQL already up
+```
+
+Produces `java-ast-ssot/metadata/dukesbank-linked.db` (32 links, 0 errors — last verified 2026-06-27).
+
+---
+
+## Start database only
 
 ```bash
 cd demo-dukesbank
@@ -98,60 +140,58 @@ docker compose up -d
 docker compose ps
 ```
 
-Wait until the container is `healthy`. First start runs the init SQL (~30s).
-
-If tables are empty or missing, check that the volume path resolves and re-create the container:
-
-```bash
-docker compose down -v
-docker compose up -d
-```
-
 ---
 
-## Export schema SSOT
+## Export schema SSOT (manual / advanced)
+
+The E2E scripts run `db-metadata` **inside the runner container**. To export schema manually on the host:
 
 ```bash
 cd ../db-metadata
+pip install -e ".[mysql]"
 db-migration export \
   --url "mysql+pymysql://dukesbank:dukesbank@localhost:3306/dukesbank" \
   --out metadata/dukesbank.db
-
 db-migration verify metadata/dukesbank.db \
   --url "mysql+pymysql://dukesbank:dukesbank@localhost:3306/dukesbank"
-
-db-migration info metadata/dukesbank.db
 ```
 
 **Last verified:** 2026-06-27 — `verify` exits 0 (36 matched entities).
 
-For the **code** side of the demo (Java + EJB XML), see [java-ast-ssot](../java-ast-ssot) and point `--source-root` at your `dukesbank/.../examples/bank` checkout.
+For the **code** side, use `./scripts/run-e2e.sh` or see [java-ast-ssot](../java-ast-ssot).
 
 ## End-to-end runbook (schema → code → crosswalk → Explorer)
 
 Full narrative: [DUKESBANK-DEMO.md — E2E quick path](../migration-hub/docs/DUKESBANK-DEMO.md#e2e-quick-path).
 
-### One-shot script (Windows)
+### One-shot (bash — recommended)
 
-Requires Docker, `db-metadata` on PATH, Duke's Bank at `../../dukesbank`:
-
-```powershell
+```bash
 cd demo-dukesbank
-.\scripts\run-e2e.ps1
+./scripts/run-e2e.sh
 # MySQL already up:
-.\scripts\run-e2e.ps1 -SkipDocker
+SKIP_DOCKER=1 ./scripts/run-e2e.sh
 ```
 
-Produces `java-ast-ssot/metadata/dukesbank-linked.db` (32 links, 0 errors — last verified 2026-06-27).
+### One-shot (compose only)
+
+```bash
+docker compose up -d mysql
+docker compose run --rm e2e
+```
 
 ### JPA re-export + parity (ADR-004 Step 4d / ADR-007 v0.4 multi-entity)
 
-Applies CMP→JPA recipes to **AccountBean**, **CustomerBean**, and **TxBean**, re-exports with JPA profile, and runs per-entity parity matrices:
+```bash
+./scripts/run-e2e-jpa-parity.sh
+# or:
+docker compose run --rm e2e-jpa-parity
+```
+
+Windows:
 
 ```powershell
-cd demo-dukesbank
 .\scripts\run-e2e-jpa-parity.ps1
-# MySQL already up:
 .\scripts\run-e2e-jpa-parity.ps1 -SkipDocker
 ```
 
@@ -201,22 +241,19 @@ Expected: crosswalk graph, link table, **Links: 32**, **Issues: 0**.
 
 ### Step 7 — LLM context (`anchor-stubborn`)
 
-Token-bounded stub text for drafting recipes or reviewing entities. **Not** part of the deterministic SSOT → rewrite → parity pipeline.
-
-```powershell
-cd demo-dukesbank
-.\scripts\run-stubborn-context.ps1
+```bash
+./scripts/run-stubborn-context.sh
 ```
 
-Full narrative: [DUKESBANK-DEMO.md Step 7](../migration-hub/docs/DUKESBANK-DEMO.md#step-7--llm-context-anchor-stubborn) · [anchor-stubborn/examples/dukesbank](https://github.com/anchor-migration/anchor-stubborn/tree/main/examples/dukesbank).
+Windows: `.\scripts\run-stubborn-context.ps1`
+
+Full narrative: [DUKESBANK-DEMO.md Step 7](../migration-hub/docs/DUKESBANK-DEMO.md#optional--llm-context-anchor-stubborn) · [anchor-stubborn/examples/dukesbank](https://github.com/anchor-migration/anchor-stubborn/tree/main/examples/dukesbank).
 
 ---
 
-## Manual steps (all platforms)
+## Manual steps (host toolchain)
 
-### End-to-end crosswalk (Docker MySQL + Docker Maven)
-
-MySQL runs in Docker (above). Build and run `java-ast-ssot` with Docker Maven if local JDK/Maven are not installed:
+Use only when debugging outside the runner container. Prefer `./scripts/run-e2e.sh` for the supported path.
 
 ```bash
 # Schema SSOT (host db-migration against localhost:3306)
@@ -249,9 +286,20 @@ docker run --rm \
   -o metadata/dukesbank-linked.db
 ```
 
-**Last verified (2026-06-27):** 4 CMP entities → **32** canonical links (`stack_bridge`, `type_maps_to_table`, `field_maps_to_column`), **0** crosswalk errors, Explorer loads linked DB.
+**Last verified (2026-06-27):** 4 CMP entities → **32** canonical links, **0** crosswalk errors.
 
-Windows: use `C:/github/anchor-migration/...` mount paths; or `.\scripts\run-e2e.ps1`. Delete stale `metadata/dukesbank-code.db` if export fails with missing `profiles` column (pre-1.0 SQLite).
+Legacy one-liner: `.\scripts\run-e2e.ps1` (Windows) delegates to the same Docker pipeline.
+
+---
+
+## Path overrides
+
+If `dukesbank` is not at `../../dukesbank`, set env vars before running (see `.env.example`):
+
+```bash
+export DUKESBANK_BANK_ROOT=/path/to/bank/module
+export GITHUB_ROOT=/path/to/parent-of-anchor-migration-and-dukesbank
+```
 
 ---
 

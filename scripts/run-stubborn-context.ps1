@@ -1,38 +1,27 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Duke's Bank Step 7 — scip-java + anchor-stubborn context for AccountControllerBean.
-
-.DESCRIPTION
-  Delegates to anchor-stubborn/examples/dukesbank/scripts/run-e2e.ps1
-  Requires dukesbank clone as sibling of anchor-migration.
+  Docker-first wrapper for run-stubborn-context.sh (anchor-stubborn Step 7).
 
 .EXAMPLE
   .\scripts\run-stubborn-context.ps1
 #>
-param(
-    [string]$BankRoot = ""
-)
-
 $ErrorActionPreference = "Stop"
-
 $DemoRoot = Split-Path -Parent $PSScriptRoot
-$AnchorRoot = Join-Path (Split-Path -Parent $DemoRoot) "anchor-stubborn"
-$StubbornScript = Join-Path $AnchorRoot "examples\dukesbank\scripts\run-e2e.ps1"
+$GitBash = @(
+    "${env:ProgramFiles}\Git\bin\bash.exe"
+    "${env:ProgramFiles(x86)}\Git\bin\bash.exe"
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-if (-not (Test-Path $StubbornScript)) {
-    throw "anchor-stubborn not found at $AnchorRoot — clone anchor-migration workspace."
+if ($GitBash) {
+    & $GitBash -lc "cd '$(($DemoRoot -replace '\\','/'))' && ./scripts/run-stubborn-context.sh"
+    exit $LASTEXITCODE
 }
 
-$params = @{}
-if ($BankRoot) { $params["BankRoot"] = $BankRoot }
-
-& $StubbornScript @params
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-Write-Host "`n==> verify neighbors..." -ForegroundColor Cyan
-Push-Location $AnchorRoot
-python scripts\verify_dukesbank_context.py
-$code = $LASTEXITCODE
-Pop-Location
-exit $code
+Push-Location $DemoRoot
+try {
+    bash ./scripts/run-stubborn-context.sh
+    exit $LASTEXITCODE
+} finally {
+    Pop-Location
+}

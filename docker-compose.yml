@@ -1,3 +1,34 @@
+# Duke's Bank demo — Docker-first E2E toolchain.
+#
+# Quick start (from this directory):
+#   docker compose run --rm e2e
+#   docker compose run --rm e2e-jpa-parity
+#
+# Or use host wrappers (start MySQL + run compose):
+#   ./scripts/run-e2e.sh
+#   ./scripts/run-e2e-jpa-parity.sh
+
+x-runner: &runner
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.runner
+  image: anchor-demo-dukesbank-runner:latest
+  working_dir: /workspace
+  volumes:
+    - ../:/workspace
+    - ../../dukesbank:/dukesbank:ro
+    - m2-cache:/root/.m2
+  environment: &runner-env
+    ANCHOR_ROOT: /workspace
+    DUKESBANK_BANK_ROOT: /dukesbank/src/j2eetutorial14/examples/bank
+    MYSQL_HOST: mysql
+    MYSQL_URL: mysql+pymysql://dukesbank:dukesbank@mysql:3306/dukesbank
+  networks:
+    - dukesbank
+  depends_on:
+    mysql:
+      condition: service_healthy
+
 services:
   mysql:
     image: mysql:5.7
@@ -17,3 +48,24 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    networks:
+      - dukesbank
+
+  runner:
+    <<: *runner
+    entrypoint: ["/bin/bash"]
+
+  e2e:
+    <<: *runner
+    entrypoint: ["/bin/bash", "/workspace/demo-dukesbank/scripts/lib/e2e-core.sh"]
+
+  e2e-jpa-parity:
+    <<: *runner
+    entrypoint: ["/bin/bash", "/workspace/demo-dukesbank/scripts/lib/e2e-jpa-parity-core.sh"]
+
+networks:
+  dukesbank:
+
+volumes:
+  m2-cache:
+    name: anchor-demo-dukesbank-m2
