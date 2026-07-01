@@ -167,9 +167,10 @@ Produces:
 | `dukesbank-code-before.db` | EJB-era code SSOT |
 | `dukesbank-code-after.db` | Post-CMP→JPA + auto-detected profiles |
 | `dukesbank-linked-before.db` / `dukesbank-linked-after.db` | Crosswalk snapshots |
-| `parity-verify/metadata/dukesbank-parity-account.json` (+ `.html`) | AccountBean matrix |
-| `parity-verify/metadata/dukesbank-parity-customer.json` (+ `.html`) | CustomerBean matrix |
+| `parity-verify/metadata/dukesbank-parity-accountbean.json` (+ `.html`) | AccountBean matrix |
+| `parity-verify/metadata/dukesbank-parity-customerbean.json` (+ `.html`) | CustomerBean matrix |
 | `parity-verify/metadata/dukesbank-parity-txbean.json` (+ `.html`) | TxBean matrix |
+| `parity-verify/metadata/dukesbank-parity-nextidbean.json` (+ `.html`) | NextIdBean matrix |
 
 Apply recipe to a single file (Docker):
 
@@ -182,7 +183,7 @@ docker run --rm -v "$PWD:/app" -v "/path/to/bank:/work" -w /app \
    CmpScalarEntityToJpa /work/src/com/sun/ebank/ejb/tx/TxBean.java TxBean'
 ```
 
-Supported recipes: `CmpScalarEntityToJpa`, `CmpManyToManyToJpa`, `CmpForeignKeyToJpa`. Optional third argument sets `targetClassName` for `CmpScalarEntityToJpa`.
+Supported recipes: `CmpScalarEntityToJpa`, `CmpManyToManyToJpa`, `CmpForeignKeyToJpa`, `NextIdTableToJpa`. Optional third argument sets `targetClassName` for `CmpScalarEntityToJpa`.
 
 ### Anchor Explorer
 
@@ -195,6 +196,14 @@ npm run dev
 Open http://127.0.0.1:5173/ → **Choose File** → `java-ast-ssot\metadata\dukesbank-linked.db`
 
 Expected: crosswalk graph, link table, **Links: 32**, **Issues: 0**.
+
+### Optional — LLM context (`anchor-stubborn`)
+
+Token-bounded stub text for drafting recipes or reviewing entities without sending full sources to an LLM. Not part of the deterministic SSOT → rewrite → parity pipeline.
+
+1. Index Duke's Bank with `scip-java` → `anchor-stubborn index`
+2. `anchor-stubborn context … --target-stable-id …` for a specific entity or controller
+3. Walkthrough: [migration-bridge example](https://github.com/anchor-migration/anchor-stubborn/tree/main/examples/migration-bridge) · [ADR-010](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-010-anchor-stubborn-integration.md)
 
 ---
 
