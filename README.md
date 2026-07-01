@@ -74,6 +74,8 @@ Then use the same JDBC URL in export commands (`localhost:3306/dukesbank` unless
 |------|---------|
 | `docker-compose.yml` | MySQL 5.7 container, port 3306, health check |
 | `scripts/run-e2e.ps1` | **End-to-end** — schema + code + crosswalk (Windows PowerShell) |
+| `scripts/run-e2e-jpa-parity.ps1` | JPA re-export + per-entity parity |
+| `scripts/run-stubborn-context.ps1` | **Step 7** — `scip-java` + anchor-stubborn LLM context |
 | `README.md` | Setup and runbook (this file) |
 
 There is no application code, no SQL file, and no exported SQLite here. Those come from the **sibling** `dukesbank/` checkout and from `../db-metadata/metadata/` after export.
@@ -197,13 +199,16 @@ Open http://127.0.0.1:5173/ → **Choose File** → `java-ast-ssot\metadata\duke
 
 Expected: crosswalk graph, link table, **Links: 32**, **Issues: 0**.
 
-### Optional — LLM context (`anchor-stubborn`)
+### Step 7 — LLM context (`anchor-stubborn`)
 
-Token-bounded stub text for drafting recipes or reviewing entities without sending full sources to an LLM. Not part of the deterministic SSOT → rewrite → parity pipeline.
+Token-bounded stub text for drafting recipes or reviewing entities. **Not** part of the deterministic SSOT → rewrite → parity pipeline.
 
-1. Index Duke's Bank with `scip-java` → `anchor-stubborn index`
-2. `anchor-stubborn context … --target-stable-id …` for a specific entity or controller
-3. Walkthrough: [migration-bridge example](https://github.com/anchor-migration/anchor-stubborn/tree/main/examples/migration-bridge) · [ADR-010](https://github.com/anchor-migration/migration-hub/blob/main/docs/ADR-010-anchor-stubborn-integration.md)
+```powershell
+cd demo-dukesbank
+.\scripts\run-stubborn-context.ps1
+```
+
+Full narrative: [DUKESBANK-DEMO.md Step 7](../migration-hub/docs/DUKESBANK-DEMO.md#step-7--llm-context-anchor-stubborn) · [anchor-stubborn/examples/dukesbank](https://github.com/anchor-migration/anchor-stubborn/tree/main/examples/dukesbank).
 
 ---
 
