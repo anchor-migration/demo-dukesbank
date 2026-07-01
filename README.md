@@ -247,7 +247,7 @@ Expected: crosswalk graph, link table, **Links: 32**, **Issues: 0**.
 
 Windows: `.\scripts\run-stubborn-context.ps1`
 
-Full narrative: [DUKESBANK-DEMO.md Step 7](../migration-hub/docs/DUKESBANK-DEMO.md#optional--llm-context-anchor-stubborn) · [anchor-stubborn/examples/dukesbank](https://github.com/anchor-migration/anchor-stubborn/tree/main/examples/dukesbank).
+Full narrative: [DUKESBANK-DEMO.md Step 7](../migration-hub/docs/DUKESBANK-DEMO.md#optional--llm-context-anchor-stubborn) · [anchor-stubborn/examples/dukesbank](https://github.com/stubborn-ai/stubborn/tree/main/examples/dukesbank).
 
 ---
 
